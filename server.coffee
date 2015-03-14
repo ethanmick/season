@@ -1,27 +1,37 @@
+#
+# Ethan Mick
+# 2015
+#
 'use strict'
 
 Hapi = require 'hapi'
+SocketIO = require 'socket.io'
 Q = require 'q'
 config = require './config/config'
+PORT = process.env.PORT or 4439
 
-server = new Hapi.Server(
-  debug: { request: ['error'] }
-)
-server.connection port: config.port, address: config.host
+class Server
 
-server.on 'internalError', (request, err)->
-  console.log err
+  constructor: ->
+    server = new Hapi.Server()
+    server.connection(port: 4439)
+    @io = SocketIO.listen(server.listener)
 
-##################################################################
-#                             Start                              #
-##################################################################
 
-start = ->
-  console.log 'Attempting to start Hapi server.'
-  deferred = Q.defer()
-  server.start ->
-    console.log 'Server started at: ', server.info.uri
-    deferred.resolve()
-  deferred.promise
+  addSockets: (@handler)->
+    @io.sockets.on 'connection', @handler
 
-start()
+
+  addRoutes: (routes)->
+    server.route(routes)
+
+
+  start: ->
+    console.log 'Attempting to start Hapi server.'
+    deferred = Q.defer()
+    server.start ->
+      console.log 'Server started at: ', server.info.uri
+      deferred.resolve()
+    deferred.promise
+
+module.exports = Server
